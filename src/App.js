@@ -7,20 +7,29 @@ import {
   Redirect,
 } from 'react-router-dom';
 
+
+const store = {
+  name: 'robus',
+  lastName: 'gauli',
+  type: 'male',
+}
 const makeComponent = title =>
-  () => 
+  (props) => console.log(props) ||  
     <h1>{title}</h1>
 
-const NotFound = () =>
+const NotFound = (props) => console.log(props) || 
   <h1>Page not found </h1>
 
-const Topic = ({ match: { path, isExact }}) => (
+const Topic = ({ match: { path, isExact }}) => console.log() || (
   <div>
     <ul>
       <li><Link to={`${path}/robus`}> Robus </Link></li>
       <li><Link to={`${path}/rahul`}> Rahul </Link></li>
       <li><Link to={`${path}/ishan`}> Ishan </Link></li>
     </ul>
+    <div>
+      
+    </div>
     <div>
       <Route path={`${path}/rahul`} component={makeComponent('Rahul')} />
       <Route path={`${path}/robus`} component={makeComponent('Robus')}/>
@@ -60,6 +69,7 @@ class Input extends React.Component {
   }
   
   render() {
+    console.log(this.props);
     const {
       name,
       type,
@@ -110,8 +120,45 @@ class Login extends React.Component {
   }
 }
 
+
+class Provider extends React.Component {
+  constructor() {
+    super();
+    this.traverseChildren = this.traverseChildren.bind(this);
+  }
+
+  traverseChildren(children) {
+    
+    if (typeof children === 'string') {
+      return children;
+    } else if (typeof children === 'object' && !Array.isArray(children)) {
+      let c = { ...children , 'props': { ...children.props, data: store, children: this.traverseChildren.call(this, children.props.children)}}
+      return c;
+    } else if (Array.isArray(children)) {
+      // that means we need to cal this function again
+      return children
+        .map(child => this.traverseChildren.call(this, child)) 
+    } 
+  
+  }
+
+  render() {
+
+    const { data } = this.props;
+    const { children } = this.props;
+    const c = this.traverseChildren(children);
+    console.log(c);
+    return (
+      <div>
+        {c}
+      </div>
+    );
+  }
+}
+
 class Dashboard extends React.Component {
   render() {
+    console.log('dasboard', this.props.data)
     const { authenticated } = this.props;
     if (!authenticated) {
       return (
@@ -138,20 +185,21 @@ class App extends React.Component {
       authenticated: true
     })
   }
-  
+
   render() {
     return (
-      <Router>
-        <div>
+      <Provider data={store} >
+        <Router>
           <div>
-          My App
-          </div>
-          <ul>
-            <li><Link to='/'> home </Link></li>
-            <li><Link to='/about'> About </Link></li>
-            <li><Link to='/topics'> Topics </Link></li>
-            <li><Link to='/login'> Login </Link></li>
-          </ul>
+            <div>
+            My App
+            </div>
+            <ul>
+              <li><Link to='/'> home </Link></li>
+              <li><Link to='/about'> About </Link></li>
+              <li><Link to='/topics'> Topics </Link></li>
+              <li><Link to='/login'> Login </Link></li>
+            </ul>
           <hr/>
           <button onClick={this.onClick}> Aunthenticate </button>
           <div>
@@ -168,6 +216,7 @@ class App extends React.Component {
           </div>
         </div>
       </Router>
+    </Provider>
     );
   }
 }
