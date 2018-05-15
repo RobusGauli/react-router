@@ -8,6 +8,7 @@ const hasOwnProp = (object, key) =>
 const uniqueId = () =>
 	Math.random().toString(30).substring(7);
 
+// Global Event Listener , for two interdependent component
 
 class GlobalEventListener {
 	constructor() {
