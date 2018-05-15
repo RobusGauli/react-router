@@ -1,4 +1,4 @@
-
+// global actions
 const SHOW_MENU = 'SHOW_MENU';
 const HIDE_MENU = 'HIDE_MENU';
 const TOGGLE_MENU = 'TOGGLE_MENU';
