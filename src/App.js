@@ -1,224 +1,332 @@
-import React from 'react';
-import {
-  Link,
-  BrowserRouter as Router,
-  Route,
-  Switch,
-  Redirect,
-} from 'react-router-dom';
+
+const SHOW_MENU = 'SHOW_MENU';
+const HIDE_MENU = 'HIDE_MENU';
+const TOGGLE_MENU = 'TOGGLE_MENU';
+
+const hasOwnProp = (object, key) =>
+	Object.prototype.hasOwnProperty.call(object, key);
+const uniqueId = () =>
+	Math.random().toString(30).substring(7);
 
 
-const store = {
-  name: 'robus',
-  lastName: 'gauli',
-  type: 'male',
-}
-const makeComponent = title =>
-  (props) => console.log(props) ||  
-    <h1>{title}</h1>
+class GlobalEventListener {
+	constructor() {
+		this.callbacks = {}
+		if (
+			typeof window !== 'undefined' &&
+			window.document &&
+			window.document.createElement
+		) {
+			// we have a valid dom
+			window.addEventListener(SHOW_MENU, this.handleShowMenu);
+			window.addEventListener(HIDE_MENU, this.handleHideMenu);
+			window.addEventListener(TOGGLE_MENU, this.handleToggleMenu);
+		}
+	}
+	
+	handleToggleMenu = e => {
+		for(const id in this.callbacks) {
+			if (hasOwnProp(this.callbacks, id)) {
+				const obj = this.callbacks[id];
+				obj.toggle(e);
+			}
+		}
+		
+	}
+	handleShowMenu = e => {
 
-const NotFound = (props) => console.log(props) || 
-  <h1>Page not found </h1>
-
-const Topic = ({ match: { path, isExact }}) => console.log() || (
-  <div>
-    <ul>
-      <li><Link to={`${path}/robus`}> Robus </Link></li>
-      <li><Link to={`${path}/rahul`}> Rahul </Link></li>
-      <li><Link to={`${path}/ishan`}> Ishan </Link></li>
-    </ul>
-    <div>
-      
-    </div>
-    <div>
-      <Route path={`${path}/rahul`} component={makeComponent('Rahul')} />
-      <Route path={`${path}/robus`} component={makeComponent('Robus')}/>
-      <Route path={`${path}/ishan`} component={makeComponent('Ishan')} />
-    </div>
-    { isExact && <div> Please Choose a topics </div>}
-  </div>
-);
-
-class Love extends React.Component {
-  render() {
-    const {
-      onChange,
-      children,
-    } = this.props;
-    
-    const augmentedChildren = children
-      .map(child => ({
-        ...child,
-        props: {...child.props, onChange }
-      }))
-    
-      return (
-      <div>
-       { augmentedChildren }
-      </div>
-    )
-  }
-}
-
-class Input extends React.Component {
-  
-  onChange = e => {
-    const { onChange: o, name } = this.props;
-    
-    o(name, e.target.value)
-  }
-  
-  render() {
-    console.log(this.props);
-    const {
-      name,
-      type,
-      onChange,
-      ...rest
-    } = this.props;
-    return (
-      <input type={type} name={name} onChange={this.onChange} {...rest} />
-    )
-  }
+		console.log(this.callbacks);
+		for(const id in this.callbacks) {
+			console.log(id);
+			if (hasOwnProp(this.callbacks, id)) {
+				console.log(this.callbacks[id])
+				const obj = this.callbacks[id];
+				obj.show(e);
+			}
+		}
+	}
+	
+	handleHideMenu = (e) => {
+		for(const id in this.callbacks) {
+			if (hasOwnProp(this.callbacks, id)) {
+				const obj = this.callbacks[id];
+				obj.hide(e)
+			}
+		}
+	}
+	register(showCallback, hideCallback, toggleCallback) {
+		const id = uniqueId();
+		this.callbacks[id] = {
+			show: showCallback,
+			hide: hideCallback,
+			toggle: toggleCallback
+		};
+		
+		console.log(this.callbacks);
+		return id; 
+		
+	}
+	
+	unregister(id) {
+		// check to see if the id exists
+		if(id && this.callbacks[id]) {
+			delete this.callbacks[id];
+		}
+	}
 }
 
-Love.Input = Input;
+const globalListener = new GlobalEventListener();
 
-class Login extends React.Component {
-  state = {
-    username: '',
-    password: '',
-    isLogin: false,
-  }
-
-  onChange = (name, value) => () => {
-    console.log(name, value);
-  }
-
-  onSubmit = e => {
-    this.setState({
-      isLogin: true,
-    });
-  }
-
-  render() {
-    const { isLogin } = this.state;
-    if (isLogin) {
-      return (
-        <Redirect to='/dashboard' />
-      )
-    }
-    return (
-      <div>
-        <Love onChange={this.onChange}>
-          <Love.Input name='username' type='text'  />
-          <Love.Input name='password' type='password' />
-          <button onClick={this.onSubmit}> Submit </button>
-        </Love>
-      </div>
-    )
-  }
+function dispatchGlobalEvent(eventName, opts, target=window) {
+	let event;
+	
+	if (typeof window.CustomEvent === 'function') {
+		
+		event = new window.CustomEvent(
+			eventName,
+			{
+				detail: opts
+			}
+		)
+		
+		if (target) {
+			target.dispatchEvent(event);
+		}
+	}
 }
 
-
-class Provider extends React.Component {
-  constructor() {
-    super();
-    this.traverseChildren = this.traverseChildren.bind(this);
-  }
-
-  traverseChildren(children) {
-    
-    if (typeof children === 'string') {
-      return children;
-    } else if (typeof children === 'object' && !Array.isArray(children)) {
-      let c = { ...children , 'props': { ...children.props, data: store, children: this.traverseChildren.call(this, children.props.children)}}
-      return c;
-    } else if (Array.isArray(children)) {
-      // that means we need to cal this function again
-      return children
-        .map(child => this.traverseChildren.call(this, child)) 
-    } 
-  
-  }
-
-  render() {
-
-    const { data } = this.props;
-    const { children } = this.props;
-    const c = this.traverseChildren(children);
-    console.log(c);
-    return (
-      <div>
-        {c}
-      </div>
-    );
-  }
+function showMenu(config, target) {
+	dispatchGlobalEvent(
+		SHOW_MENU,
+		Object.assign({}, config),
+		target
+	);
+	
 }
 
-class Dashboard extends React.Component {
-  render() {
-    console.log('dasboard', this.props.data)
-    const { authenticated } = this.props;
-    if (!authenticated) {
-      return (
-        <Redirect to='/login' />
-      );
-    }
-    return (
-      
-      <div> This is a dashboard </div>
-      
-    )
-  }
+function toggleMenu(config, target) {
+	dispatchGlobalEvent(
+		TOGGLE_MENU,
+		Object.assign({}, config),
+		target
+	)
 }
 
-
+function hideMenu(config, target) {
+	dispatchGlobalEvent(
+		HIDE_MENU,
+		Object.assign({}, config),
+		target,
+	)
+}
 
 class App extends React.Component {
-  state= {
-    authenticated: false,
-  }
+	render() {
+		return (
+ <div className="customize-column">
+			<ContextMenuTrigger id='tab1'>
+ <div className="customize-selectable d-flex align-items-center">
+                <span>Customize Columns</span>
+                <i className="hb-arrow-down fs9 ml-2" />
+              </div>
+				</ContextMenuTrigger>
+				<ContextMenu id='tab1'>
+					<div className="customize-options">
+                <div className="options">
+                  <div className="checkbox-wrap d-inline-flex align-items-start">
+                    <div className="fake-checkbox mr-2">
+                      <input type="checkbox" />
+                    </div>
+                    <span className="h-main-text-color fs13">
+                      Footing Width or Diameter (ft)
+                    </span>
+                  </div>
+                </div>
+                <div className="options">
+                  <div className="checkbox-wrap d-inline-flex align-items-start">
+                    <div className="fake-checkbox mr-2">
+                      <input type="checkbox" />
+                    </div>
+                    <span className="h-main-text-color fs13">
+                      Footing Length
+                    </span>
+                  </div>
+                </div>
+                <div className="options">
+                  <div className="checkbox-wrap d-inline-flex align-items-start">
+                    <div className="fake-checkbox mr-2">
+                      <input type="checkbox" />
+                    </div>
+                    <span className="h-main-text-color fs13">
+                      Bearing Pressure
+                    </span>
+                  </div>
+                </div>
+                <div className="options">
+                  <div className="checkbox-wrap d-inline-flex align-items-start">
+                    <div className="fake-checkbox mr-2">
+                      <input type="checkbox" />
+                    </div>
+                    <span className="h-main-text-color fs13">
+                      No. of piers per Footing
+                    </span>
+                  </div>
+                </div>
+                <div className="options">
+                  <div className="checkbox-wrap d-inline-flex align-items-start">
+                    <div className="fake-checkbox mr-2">
+                      <input type="checkbox" />
+                    </div>
+                    <span className="h-main-text-color fs13">
+                      Actual Area Replace ratio
+                    </span>
+                  </div>
+                </div>
+              </div>
+				</ContextMenu>
+				
+				
 
-  onClick = e => {
-    this.setState({
-      authenticated: true
-    })
-  }
-
-  render() {
-    return (
-      <Provider data={store} >
-        <Router>
-          <div>
-            <div>
-            My App
-            </div>
-            <ul>
-              <li><Link to='/'> home </Link></li>
-              <li><Link to='/about'> About </Link></li>
-              <li><Link to='/topics'> Topics </Link></li>
-              <li><Link to='/login'> Login </Link></li>
-            </ul>
-          <hr/>
-          <button onClick={this.onClick}> Aunthenticate </button>
-          <div>
-            <Switch>
-              <Route exact path='/' component={makeComponent('Home')} />
-              <Route path='/about' component={makeComponent('About')} />
-              <Route path='/topics' component={Topic} />
-              <Route path='/login' component={Login} />
-              <Route path='/dashboard' render={(props) => {
-                return <Dashboard authenticated={this.state.authenticated} {...props} />
-              }} />
-              <Route component={NotFound} />
-            </Switch>
-          </div>
-        </div>
-      </Router>
-    </Provider>
-    );
-  }
+			</div>
+		);
+	}
 }
 
-export default App;
+class ContextMenu extends React.Component {
+	
+	state = {
+		show: false,
+	}
+	componentDidMount() {
+		this.id = globalListener.register(this.handleShow, this.handleHide, this.handleToggle);
+	}
+
+	componentDidUnmount() {
+		globalListener.unregister(this.id);
+	}
+
+	handleShow = e => {
+		
+		this.setState(state => {
+			if (state.show) {
+				return null;
+			}
+			return {
+				show: true
+			}
+		})
+	}
+
+	handleHide = e => {
+
+		this.setState(state => {
+			if (state.show) {
+				return {
+					show: false
+				}
+			}
+			return null;
+		}, () => {
+			
+			const { show } = this.state;
+			if (!show) {
+				this.unRegisterListeners();
+			}
+		})
+
+	}
+	
+	handleClick() {
+		this.setState(state => {
+			return {
+				show: !state.show
+			}
+		})
+	}
+
+	handleToggle = e => {
+		
+		if (e.detail.id !== this.props.id) return;
+		this.setState(state => {
+			return {
+				show : !state.show
+			}
+		}, () => {
+			const { show } = this.state;
+			console.log('show', show);
+			if (show) {
+				this.registerListeners();
+			} else {
+				this.unRegisterListeners()
+			}
+		})
+	}
+	
+	handleDocumentMouseClick = e => {
+		 console.log('this si it', e);
+		console.log(this.node.contains(e.target));
+		if (this.node.contains(e.target)) return;
+		hideMenu();
+	}
+	
+	registerListeners = () => {
+		document.addEventListener('click', this.handleDocumentMouseClick);
+	}
+	
+	unRegisterListeners = () => {
+		document.removeEventListener('click', this.handleDocumentMouseClick);
+	}
+	saveElement = node => {
+		this.node = node;
+	}
+	render() {
+		const {
+			children	
+		} = this.props;
+		
+		const props = {
+			children,
+			ref: this.saveElement
+		}
+		const { state } = this;
+		if (!state.show) {
+			return null;
+		}
+		return React.createElement('div', props);
+	}
+}
+
+class ContextMenuTrigger extends React.Component {
+	onClick = e => {
+		// create a new event to toggle
+		const config = {
+			id: this.props.id,
+			target: this.elem
+		}
+		toggleMenu(config);
+	}
+	elemRef = node => {
+		this.elem = node;
+	}
+	render() {
+		const {
+			renderTag,
+			children,
+			...rest
+		} = this.props;
+		
+		const props = {
+			children,
+			onClick: this.onClick,
+			ref: this.elemRef
+		}
+		return React.createElement(renderTag, props);
+	}
+}
+
+ContextMenuTrigger.defaultProps = {
+	renderTag: 'div'
+}
+
+
+ReactDOM.render(<App />, document.getElementById('app'));
